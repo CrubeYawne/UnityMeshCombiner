@@ -17,4 +17,4 @@ Steps:
 
 You can then use Unity's Built in system to export the data to fbx [Here](https://docs.unity3d.com/Packages/com.unity.formats.fbx@2.0/manual/exporting.html#:~:text=Use%20Export%20To%20FBX%20(menu,the%20parent's%20hierarchy%20is%20exported.)
 
-![Screenshot] (Screenshot.png)
+![Screenshot] (https://github.com/CrubeYawne/UnityMeshCombiner/blob/master/Screenshot.png?raw=true)
