@@ -4,26 +4,30 @@ using UnityEditor;
 using UnityEngine;
 using System.Linq;
 
+/// <summary>
+/// This is a component used to combine child gameobject meshes
+/// </summary>
 public class CombineForExport : MonoBehaviour
 {
 
+    [Tooltip("Where generated meshes will be created under. Auto-generated.")]
     public GameObject generatedContainer;
 
-    public GameObject targetFilter;
+    [Tooltip("Use to limit which objects meshes to combine. Can be empty")]
+    public GameObject targetGameObjectFilter;
 
-    public bool merge_submeshes = false;
-
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-    }
-
+  
+    /// <summary>
+    /// Remove objects with more materials that submesh count. Runs on self.
+    /// </summary>
     public void CleanupBadSubMaterials()
     {
         CleanupBadSubMaterialsRecursive(this.transform);
     }
 
+    /// <summary>
+    /// This function checks that all generated meshes have only 1 mesh. Having more than 1 mesh means the combine most likely didn't work correctly.
+    /// </summary>
     public void CheckGenerated()
     {
         var allFilters = generatedContainer.GetComponentsInChildren<MeshFilter>();
@@ -44,6 +48,9 @@ public class CombineForExport : MonoBehaviour
 
     }
 
+    /// <summary>
+    /// Iterates over all of the already "generated" meshes and combines what is similar
+    /// </summary>
     public void CombineGenerated()
     {
         var allFilters = generatedContainer.GetComponentsInChildren<MeshFilter>();
@@ -117,6 +124,10 @@ public class CombineForExport : MonoBehaviour
 
     }
 
+    /// <summary>
+    /// Fixes gameobject meshes that have more material slots than submesh items
+    /// </summary>
+    /// <param name="t">Gameobject to check for meshes or children</param>
     private void CleanupBadSubMaterialsRecursive(Transform t)
     {
         foreach(Transform t_child in t)
@@ -152,33 +163,31 @@ public class CombineForExport : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// This class is used to group 'like' mesh objects for combination
+    /// </summary>
     private class MeshGrouping
     {
+        /// <summary>
+        /// collection of mesh objects to combine
+        /// </summary>
         public List<MeshFilter> item_list;
 
+        /// <summary>
+        /// Common name for mesh
+        /// </summary>
         public string mesh_name;
 
+        /// <summary>
+        /// List of materials assigned to mesh
+        /// </summary>
         public Material[] materials;
     }
 
-    private class SubMeshGrouping
-    {
-        public List<Mesh> item_list;
 
-        public string mesh_name;
-
-        public int subMeshIndex;
-
-        public Material targetMaterial;
-
-    }
-
-    private class CombineCombo
-    {
-        public MeshFilter mf;
-        public Material[] materialList;
-    }
-
+    /// <summary>
+    /// Will combine all gameobject children having a single material slot. Will use filter if set.
+    /// </summary>
     public void CombineTarget()
     {
         var allMeshes = this.gameObject.GetComponentsInChildren<MeshFilter>();
@@ -189,9 +198,9 @@ public class CombineForExport : MonoBehaviour
         {
             var mRen = m.GetComponent<Renderer>();
 
-            if(targetFilter != null)
+            if(targetGameObjectFilter != null)
             {
-                if(m.sharedMesh.name != targetFilter.GetComponent<MeshFilter>().sharedMesh.name)
+                if(m.sharedMesh.name != targetGameObjectFilter.GetComponent<MeshFilter>().sharedMesh.name)
                 {
                     continue;
                 }
@@ -262,6 +271,10 @@ public class CombineForExport : MonoBehaviour
 
     }
 
+
+    /// <summary>
+    /// Combine gameobject meshes that have more than 1 material slot
+    /// </summary>
     public void CombineTargetSubMesh()
     {
         var allMeshes = this.gameObject.GetComponentsInChildren<MeshFilter>();
@@ -272,9 +285,9 @@ public class CombineForExport : MonoBehaviour
         {
             var mRen = m.GetComponent<Renderer>();
 
-            if(targetFilter != null)
+            if(targetGameObjectFilter != null)
             {
-                if(m.sharedMesh.name != targetFilter.GetComponent<MeshFilter>().sharedMesh.name)
+                if(m.sharedMesh.name != targetGameObjectFilter.GetComponent<MeshFilter>().sharedMesh.name)
                 {
                     continue;
                 }
@@ -369,115 +382,7 @@ public class CombineForExport : MonoBehaviour
 
     }
 
-    private void RecursiveCheck(Transform t_child)
-    {
-        /*
-        foreach(Transform t in t_child)
-            if (t.gameObject.activeSelf)
-                RecursiveCheck(t);            
-
-        var itemRenderer = t_child.GetComponent<Renderer>();        
-
-        if(itemRenderer != null && itemRenderer.sharedMaterial != null)
-        {
-            var top_mesh = t_child.GetComponent<MeshFilter>();
-
-            if(top_mesh != null)
-            {
-                var matchingMeshes = mesh_collection.Where( t => 
-                    t.mesh_name == top_mesh.sharedMesh.name);
-
-                MeshGrouping existingSB = null;
-
-                foreach(var mm in matchingMeshes)
-                {
-                    if(mm.targetMaterials.Count() != itemRenderer.sharedMaterials.Count())
-                        continue;
-                    else
-                    {
-                        int match_count = 0;
-
-                        for(int i=0; i != mm.targetMaterials.Count(); ++i)
-                        {
-                            if(mm.targetMaterials[i].name == itemRenderer.sharedMaterials[i].name)
-                            {
-                                match_count++;
-                            }
-                            
-                        }
-
-                        if(match_count == mm.targetMaterials.Count())
-                        {
-                            existingSB = mm;
-                        }
-
-                    }
-
-                    if(existingSB != null)
-                        break;
-                }
-
-                
-
-                if(existingSB == null)
-                {
-                    existingSB = new MeshGrouping();
-                    existingSB.mesh_name = top_mesh.sharedMesh.name;
-                    existingSB.item_list = new List<CombineCombo>();
-                    existingSB.targetMaterials = itemRenderer.sharedMaterials;
-                    existingSB.material_count = itemRenderer.sharedMaterials.Count();                    
-                    mesh_collection.Add(existingSB);
-                }
-
-                var cc = new CombineCombo();
-                cc.mf = top_mesh;
-                cc.materialList = itemRenderer.sharedMaterials;
-                existingSB.item_list.Add(cc);
-            }
-        }
-        */
-    }
-
-    /*
-    private Mesh CombineMeshes(List<MeshFilter> meshes)
-    {
-        var combine = new CombineInstance[meshes.Count];
-        for (int i = 0; i < meshes.Count; i++)
-        {
-            var loopMesh = meshes[i].mf;
-            if(loopMesh == null || loopMesh.sharedMesh == null)
-            {
-                Debug.LogWarning("Dead mesh " + i, loopMesh);
-                continue;
-            }
-
-            if(meshes[i].materialList.Length != loopMesh.sharedMesh.subMeshCount)
-            {
-                Debug.LogWarning("Material list doesn't match submesh count", loopMesh);
-            }
-
-            if(!loopMesh.sharedMesh.isReadable)
-            {
-                Debug.LogWarning("Issue with: " + loopMesh.name, loopMesh.gameObject);
-
-                SerializedObject s = new SerializedObject(loopMesh.sharedMesh);
-                s.FindProperty("m_IsReadable").boolValue = true;              
-
-                Debug.LogWarning(string.Format("{0}={1}", loopMesh.name, loopMesh.sharedMesh.isReadable));
-
-            }
-            combine[i].mesh = loopMesh.sharedMesh;
-            combine[i].transform = loopMesh.transform.localToWorldMatrix;
-        }
-
-        var mesh = new Mesh();
-        mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
-        mesh.CombineMeshes(combine, true);
-        return mesh;
-    }
-    */
-
-    private List<MeshGrouping> mesh_collection = new List<MeshGrouping>();
+    
 
     public void RemoveGenerated()
     {
@@ -499,44 +404,7 @@ public class CombineForExport : MonoBehaviour
 
     }
 
-    public void RunGenerator()
-    {
-        if(generatedContainer ==null)
-        {
-            generatedContainer = new GameObject();
-            generatedContainer.name = "#Generated#";
-        }
+    
 
-        mesh_collection.Clear();
-
-        foreach(Transform t in this.transform)
-        {
-            if (t.gameObject.activeSelf)
-                RecursiveCheck(t);
-        }
-
-        RemoveGenerated();
-        
-
-        foreach(var smg in mesh_collection)
-        {
-            var created_child = new GameObject();
-            var mr = created_child.AddComponent<MeshRenderer>();
-            created_child.AddComponent<MeshFilter>();
-            created_child.transform.SetParent(generatedContainer.transform);
-
-            created_child.name = string.Format("{0}-{1}", smg.mesh_name, smg.materials[0].name);
-
-            mr.sharedMaterials = smg.materials;
-            
-            Debug.Log(string.Format("combineCount: {0} for {1}", mesh_collection.Count, smg.mesh_name));
-            //created_child.GetComponent<MeshFilter>().sharedMesh = CombineMeshes(smg.item_list);
-        }
-    }
-
-    // Update is called once per frame    
-    void Update()
-    {
-        
-    }
+  
 }
