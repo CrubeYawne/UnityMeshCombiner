@@ -63,6 +63,18 @@ public class CombineForExport : MonoBehaviour
 
             if(r  != null)
             {
+                if(f.sharedMesh == null)
+                {
+                    Debug.LogError("Empty mesh?", f.gameObject);
+                    break;
+                }
+
+                if(r.sharedMaterials[0] == null)
+                {
+                    Debug.LogError("Empty material?", f.gameObject);
+                    break;
+                }
+
                 var foundItem = potentialList.FirstOrDefault( t => t.mesh_name == f.sharedMesh.name
                 
                     && t.materials[0].name == r.sharedMaterials[0].name
@@ -91,7 +103,7 @@ public class CombineForExport : MonoBehaviour
 
         foreach(var p in potentialList)
         {
-            Debug.Log(p.mesh_name + " " + p.item_list.Count());
+            //Debug.Log(p.mesh_name + " " + p.item_list.Count());
 
             var combineList = new List<CombineInstance>();
 
@@ -190,6 +202,7 @@ public class CombineForExport : MonoBehaviour
     /// </summary>
     public void CombineTarget()
     {
+        CheckContainer();
         var allMeshes = this.gameObject.GetComponentsInChildren<MeshFilter>();
 
         var combineGrouping = new List<MeshGrouping>();
@@ -209,9 +222,8 @@ public class CombineForExport : MonoBehaviour
             if(mRen == null)
                 continue;
 
-            if(mRen.sharedMaterials.Count() > 1)//test
-                continue;
-
+            if(mRen.sharedMaterials.Count() > 1 || mRen.sharedMaterials[0] == null)//test
+                continue;            
 
             var foundItem = combineGrouping.FirstOrDefault( t => t.mesh_name == 
                 m.sharedMesh.name
@@ -277,6 +289,8 @@ public class CombineForExport : MonoBehaviour
     /// </summary>
     public void CombineTargetSubMesh()
     {
+        CheckContainer();
+
         var allMeshes = this.gameObject.GetComponentsInChildren<MeshFilter>();
 
         var combineGrouping = new List<MeshGrouping>();
@@ -382,6 +396,15 @@ public class CombineForExport : MonoBehaviour
 
     }
 
+
+    private void CheckContainer()
+    {
+        if(generatedContainer == null)
+        {
+            generatedContainer = new GameObject();
+            generatedContainer.name = "#Generated#";
+        }
+    }
     
 
     public void RemoveGenerated()
